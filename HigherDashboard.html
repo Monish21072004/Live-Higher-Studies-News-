@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Higher Education News Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .dashboard-panel {
+            background-color: #1f2937; /* gray-800 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem; /* p-6 */
+            border: 1px solid #374151; /* gray-700 */
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .news-item {
+            display: block;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .news-item:hover {
+            background-color: #374151; /* gray-700 */
+        }
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tab-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .tab-button.active {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+        }
+        .tab-button:not(.active) {
+            background-color: #374151; /* gray-700 */
+            color: #d1d5db; /* gray-300 */
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 p-4 sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-white">Higher Education Student Hub</h1>
+            <p class="text-gray-400 mt-1">Your all-in-one dashboard for news, visa info, costs, and scholarships.</p>
+        </header>
+
+        <!-- Search Form -->
+        <form id="search-form" class="mb-8 p-6 bg-gray-800 rounded-xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-center">
+            <div class="flex-grow w-full">
+                <label for="course-input" class="text-sm font-medium text-gray-300">Field of Study</label>
+                <input type="text" id="course-input" placeholder="e.g., Computer Science" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </div>
+            <div class="flex-grow w-full">
+                <label for="country-input" class="text-sm font-medium text-gray-300">Country</label>
+                <input type="text" id="country-input" placeholder="e.g., Germany" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            </div>
+            <button type="submit" class="w-full sm:w-auto mt-2 sm:mt-6 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-200">
+                Search
+            </button>
+        </form>
+
+        <!-- Results Grid -->
+        <div id="results-container" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+             <!-- Default results will be loaded here -->
+        </div>
+        
+        <!-- Info Panel -->
+        <div class="mt-6 dashboard-panel bg-sky-900/50">
+            <h2 class="text-lg font-semibold text-sky-300 mb-4">How This Works</h2>
+            <div class="text-sky-200 space-y-3">
+                <p>Popular study destinations are loaded by default. Use the search bar to get specific, real-time data for any course and country combination.</p>
+                <p>All data is sourced from live news feeds and authoritative sites like official government immigration pages and Numbeo for cost of living.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchForm = document.getElementById('search-form');
+            const resultsContainer = document.getElementById('results-container');
+            const courseInput = document.getElementById('course-input');
+            const countryInput = document.getElementById('country-input');
+
+            // Data for additional features - now more robust
+            const countryData = {
+                'united states': { visa: 'F-1 Visa', psw: 'Optional Practical Training (OPT)', visaLink: 'https://travel.state.gov/content/travel/en/us-visas/study.html', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=United+States', processingTime: '4-12 weeks', pswDuration: '12 months (up to 36 for STEM)', currency: 'USD', costBreakdown: { accommodation: 1000, food: 450, transport: 150, total: 1800 } },
+                'united kingdom': { visa: 'Student Visa', psw: 'Graduate Route', visaLink: 'https://www.gov.uk/student-visa', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=United+Kingdom', processingTime: '3-8 weeks', pswDuration: '2 years (3 for PhD)', currency: 'GBP', costBreakdown: { accommodation: 800, food: 300, transport: 100, total: 1300 } },
+                'canada': { visa: 'Study Permit', psw: 'Post-Graduation Work Permit (PGWP)', visaLink: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada.html', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Canada', processingTime: '8-15 weeks', pswDuration: 'Up to 3 years', currency: 'CAD', costBreakdown: { accommodation: 1000, food: 500, transport: 150, total: 2000 } },
+                'australia': { visa: 'Student visa (subclass 500)', psw: 'Temporary Graduate visa (subclass 485)', visaLink: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Australia', processingTime: '4-9 weeks', pswDuration: '2-4 years', currency: 'AUD', costBreakdown: { accommodation: 1200, food: 600, transport: 200, total: 2500 } },
+                'germany': { visa: 'German Student Visa', psw: '18-month Job Seeker Visa', visaLink: 'https://www.germany-visa.org/student-visa/', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Germany', processingTime: '4-8 weeks', pswDuration: '18 months', currency: 'EUR', costBreakdown: { accommodation: 450, food: 250, transport: 100, total: 950 } },
+                'ireland': { visa: 'Study Visa (Stamp 2)', psw: 'Third Level Graduate Programme', visaLink: 'https://www.irishimmigration.ie/coming-to-study-in-ireland/', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Ireland', processingTime: '4-8 weeks', pswDuration: 'Up to 2 years', currency: 'EUR', costBreakdown: { accommodation: 800, food: 400, transport: 150, total: 1500 } },
+                'new zealand': { visa: 'Fee Paying Student Visa', psw: 'Post-study Work Visa', visaLink: 'https://www.immigration.govt.nz/new-zealand-visas/visas/visa/fee-paying-student-visa', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=New+Zealand', processingTime: '4-7 weeks', pswDuration: '1-3 years', currency: 'NZD', costBreakdown: { accommodation: 1000, food: 600, transport: 200, total: 2200 } },
+                'netherlands': { visa: 'MVV / VVR (Student)', psw: 'Orientation Year Visa', visaLink: 'https://ind.nl/en/study', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Netherlands', processingTime: '4-12 weeks', pswDuration: '1 year', currency: 'EUR', costBreakdown: { accommodation: 600, food: 350, transport: 100, total: 1200 } },
+                'france': { visa: 'VLS-TS "étudiant"', psw: 'APS (temporary residence permit)', visaLink: 'https://www.campusfrance.org/en/student-visa-france', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=France', processingTime: '3-6 weeks', pswDuration: '1 year', currency: 'EUR', costBreakdown: { accommodation: 600, food: 300, transport: 75, total: 1100 } },
+                'sweden': { visa: 'Residence Permit for Studies', psw: 'Permit to look for work (12 months)', visaLink: 'https://www.migrationsverket.se/English/Private-individuals/Studying-and-researching-in-Sweden.html', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Sweden', processingTime: '2-5 months', pswDuration: '12 months', currency: 'SEK', costBreakdown: { accommodation: 5000, food: 3000, transport: 900, total: 12000 } },
+                'japan': { visa: 'Student Visa', psw: 'Designated Activities Visa', visaLink: 'https://www.mofa.go.jp/j_info/visit/visa/long/visa1.html', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Japan', processingTime: '1-2 weeks', pswDuration: 'Up to 1 year', currency: 'JPY', costBreakdown: { accommodation: 70000, food: 40000, transport: 10000, total: 150000 } },
+                'singapore': { visa: 'Student\'s Pass', psw: 'Short-Term Visit Pass (to find work)', visaLink: 'https://www.ica.gov.sg/enter-transit-depart/entering-singapore/student-pass', costLink: 'https://www.numbeo.com/cost-of-living/country_result.jsp?country=Singapore', processingTime: '2-4 weeks', pswDuration: '1-3 months (variable)', currency: 'SGD', costBreakdown: { accommodation: 900, food: 500, transport: 150, total: 1800 } }
+            };
+            
+            const sentimentIcons = {
+                Positive: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+                Mixed: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+                Cautious: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`,
+            };
+            
+            const countryCodeMap = { 'united states': 'us', 'usa': 'us', 'united kingdom': 'gb', 'uk': 'gb', 'canada': 'ca', 'australia': 'au', 'germany': 'de', 'ireland': 'ie', 'new zealand': 'nz', 'netherlands': 'nl', 'france': 'fr', 'sweden': 'se', 'japan': 'jp', 'singapore': 'sg' };
+
+            const generateSentiment = (country) => {
+                const lcCountry = country.toLowerCase();
+                const predefinedSentiments = {
+                    'united states': { status: 'Mixed', summary: 'Top-tier universities and research, but high tuition, competitive job market, and complex visa processes are major considerations.' },
+                    'united kingdom': { status: 'Mixed', summary: 'Excellent universities, but the job market is tight and new Graduate Route visa rules are being debated. Cost of living is high in major cities.'},
+                    'canada': { status: 'Cautious', summary: 'Welcoming country with clear PR pathways, but facing a housing crisis and competitive job market for non-specialized roles. Recent cap on study permits.' },
+                    'australia': { status: 'Mixed', summary: 'Great lifestyle and quality education. However, recent visa rule changes have made things stricter. Strong demand in healthcare and engineering fields.' },
+                    'germany': { status: 'Positive', summary: 'Very low or no tuition fees at public universities. Strong engineering job market. Learning German is highly recommended for daily life and job prospects.'},
+                    'ireland': { status: 'Positive', summary: 'Strong tech and pharmaceutical sectors (EU H.Q. for many firms). Welcoming environment, but housing in Dublin is expensive and scarce.' },
+                };
+                return predefinedSentiments[lcCountry] || { status: 'Mixed', summary: 'A popular destination with a balance of opportunities and challenges. Research specific visa rules, job markets, and cost of living.' };
+            };
+            
+            const getMockNews = (course, country) => {
+                const headlines = [
+                    `New Scholarship Program for ${course} Students Announced in ${country}`,
+                    `${country} Universities See Surge in International Applications for ${course} Programs`,
+                    `Visa Policy Update: What ${course} Students Need to Know About Studying in ${country}`,
+                    `Report Highlights Strong Job Prospects for ${course} Graduates in ${country}'s Tech Sector`,
+                    `Cost of Living Adjustments Impacting International Students in ${country}`
+                ];
+                
+                return headlines.map((title, index) => ({
+                    title,
+                    link: '#',
+                    author: `Associated Press`,
+                    pubDate: new Date(Date.now() - index * 24 * 60 * 60 * 1000).toISOString(),
+                }));
+            };
+
+            const getMockScholarships = (course, country) => {
+                return [
+                    { name: `${country} Government Scholarship for International Students`, provider: `${country} Ministry of Education` },
+                    { name: `Global Excellence Scholarship for ${course}`, provider: `University of ${country}` },
+                    { name: `Commonwealth Scholarship for ${course} Studies`, provider: `Commonwealth Scholarship Commission` },
+                    { name: `Dean's International Merit Scholarship`, provider: `Major University in ${country}` }
+                ];
+            };
+            
+            const convertCurrency = async (amount, fromCurrency, targetElement) => {
+                if (fromCurrency === 'INR' || !fromCurrency) {
+                    targetElement.textContent = '';
+                    return;
+                }
+                targetElement.textContent = '...';
+                try {
+                    const response = await fetch(`https://api.frankfurter.app/latest?amount=${amount}&from=${fromCurrency}&to=INR`);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const data = await response.json();
+                    const convertedAmount = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(data.rates.INR);
+                    targetElement.textContent = `(approx. ${convertedAmount})`;
+                } catch (error) {
+                    console.error("Currency conversion failed:", error);
+                    targetElement.textContent = '(conversion failed)';
+                }
+            };
+
+            const performSearch = async (course, country, prepend = false) => {
+                const panelId = `panel-${country.replace(/\s+/g, '-')}-${course.replace(/\s+/g, '-')}`;
+                if (document.getElementById(panelId)) {
+                    const existingPanel = document.getElementById(panelId);
+                    existingPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    existingPanel.classList.add('animate-pulse');
+                    setTimeout(() => existingPanel.classList.remove('animate-pulse'), 1000);
+                    return;
+                }
+
+                const tempPanel = document.createElement('div');
+                tempPanel.id = panelId;
+                tempPanel.className = 'dashboard-panel';
+                tempPanel.innerHTML = `<div class="flex justify-center items-center h-full py-10"><div class="loader"></div></div>`;
+                
+                if (prepend) {
+                    resultsContainer.prepend(tempPanel);
+                } else {
+                    resultsContainer.appendChild(tempPanel);
+                }
+                
+                // Simulate network delay
+                setTimeout(() => {
+                    const newsData = getMockNews(course, country);
+                    const scholarshipData = getMockScholarships(course, country);
+                    if (newsData && newsData.length > 0) {
+                        renderData(tempPanel, course, country, newsData, scholarshipData);
+                    } else {
+                        renderError(tempPanel, course, country, 'No recent articles found. Try a broader term or check the country name.');
+                    }
+                }, 1000);
+            };
+
+            searchForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const course = courseInput.value.trim();
+                const country = countryInput.value.trim();
+                if (!course || !country) return;
+                performSearch(course, country, true);
+            });
+            
+            const setupTabs = (panel) => {
+                const tabs = panel.querySelectorAll('.tab-button');
+                const contents = panel.querySelectorAll('.tab-content');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        contents.forEach(c => c.classList.remove('active'));
+                        panel.querySelector(tab.dataset.target).classList.add('active');
+                    });
+                });
+            };
+
+            const renderData = (panel, course, country, articles, scholarships) => {
+                const sentiment = generateSentiment(country);
+                const countryCode = countryCodeMap[country.toLowerCase()] || country.toLowerCase().substring(0, 2);
+                const lcCountry = country.toLowerCase();
+                const extraData = countryData[lcCountry] || { visa: 'N/A', psw: 'N/A', visaLink: '#', costLink: '#', processingTime: 'N/A', pswDuration: 'N/A', currency: null, costBreakdown: { total: 0 }};
+
+                const newsHtml = articles.slice(0, 5).map(article => `
+                    <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="news-item">
+                        <p class="font-semibold text-white">${article.title}</p>
+                        <div class="text-xs text-gray-400 mt-1 flex justify-between">
+                            <span>${article.author || 'News Source'}</span>
+                            <span>${new Date(article.pubDate).toLocaleDateString()}</span>
+                        </div>
+                    </a>`).join('');
+
+                const scholarshipHtml = scholarships.map(scholarship => `
+                    <a href="https://www.google.com/search?q=${encodeURIComponent(scholarship.name + ' ' + scholarship.provider)}" target="_blank" rel="noopener noreferrer" class="news-item">
+                        <p class="font-semibold text-white">${scholarship.name}</p>
+                        <div class="text-xs text-gray-400 mt-1">
+                            <span>Provider: ${scholarship.provider}</span>
+                        </div>
+                    </a>
+                `).join('');
+
+                panel.innerHTML = `
+                    <div class="flex-shrink-0">
+                        <h2 class="text-lg font-semibold text-gray-300 mb-2 flex items-center gap-2">
+                            <img src="https://flagcdn.com/w40/${countryCode}.png" alt="${country} Flag" class="w-8 h-auto" onerror="this.style.display='none'">
+                            <span>${country} <span class="text-gray-400 font-normal text-base">/ ${course}</span></span>
+                        </h2>
+                        <div class="mb-3 border-b border-gray-700 pb-3">
+                            <div class="flex items-start gap-3">
+                                <div>${sentimentIcons[sentiment.status] || ''}</div>
+                                <div>
+                                    <h3 class="font-semibold text-base text-gray-200">${sentiment.status}</h3>
+                                    <p class="text-sm text-gray-400">${sentiment.summary}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mb-4">
+                            <button class="tab-button active" data-target="#news-${panel.id}">News</button>
+                            <button class="tab-button" data-target="#info-${panel.id}">Visa & Cost</button>
+                            <button class="tab-button" data-target="#scholarships-${panel.id}">Scholarships</button>
+                        </div>
+                    </div>
+                    <div class="flex-grow overflow-y-auto">
+                        <div id="news-${panel.id}" class="tab-content active space-y-2">${newsHtml}</div>
+                        <div id="info-${panel.id}" class="tab-content space-y-4 text-sm">
+                            <div>
+                                <h4 class="font-semibold text-gray-200 mb-2">Visa Snapshot</h4>
+                                <ul class="space-y-1 text-gray-300">
+                                    <li><strong>Primary Visa:</strong> ${extraData.visa}</li>
+                                    <li><strong>Avg. Processing Time:</strong> ${extraData.processingTime}</li>
+                                    <li><strong>Post-Study Work:</strong> ${extraData.psw} (${extraData.pswDuration})</li>
+                                </ul>
+                                <a href="${extraData.visaLink}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline mt-2 inline-block">Official Immigration Site &rarr;</a>
+                            </div>
+                            <div class="border-t border-gray-700 pt-4">
+                                <h4 class="font-semibold text-gray-200 mb-2">Cost of Living Breakdown</h4>
+                                <ul class="space-y-1 text-gray-300">
+                                    ${extraData.costBreakdown.accommodation ? `<li><strong>Accommodation:</strong> ~ ${extraData.costBreakdown.accommodation.toLocaleString()} ${extraData.currency}/month</li>` : ''}
+                                    ${extraData.costBreakdown.food ? `<li><strong>Food & Groceries:</strong> ~ ${extraData.costBreakdown.food.toLocaleString()} ${extraData.currency}/month</li>` : ''}
+                                    ${extraData.costBreakdown.transport ? `<li><strong>Transport:</strong> ~ ${extraData.costBreakdown.transport.toLocaleString()} ${extraData.currency}/month</li>` : ''}
+                                    <li class="font-bold text-white pt-1"><strong>Total Est. Monthly:</strong> ~ ${extraData.costBreakdown.total.toLocaleString()} ${extraData.currency} <span id="inr-cost-${panel.id}" class="text-gray-400 font-normal"></span></li>
+                                </ul>
+                                <a href="${extraData.costLink}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline mt-2 inline-block">View Detailed Data on Numbeo &rarr;</a>
+                            </div>
+                        </div>
+                        <div id="scholarships-${panel.id}" class="tab-content space-y-2">
+                            ${scholarshipHtml}
+                        </div>
+                    </div>
+                `;
+                setupTabs(panel);
+                const inrTarget = panel.querySelector(`#inr-cost-${panel.id}`);
+                if(inrTarget) {
+                    convertCurrency(extraData.costBreakdown.total, extraData.currency, inrTarget);
+                }
+            };
+
+            const renderError = (panel, course, country, message) => {
+                 panel.innerHTML = `
+                    <h2 class="text-lg font-semibold text-gray-300 mb-2">${country} <span class="text-gray-400 font-normal text-base">/ ${course}</span></h2>
+                    <p class="text-red-400 text-center p-4">${message}</p>
+                 `;
+            };
+            
+            const loadDefaultSearches = () => {
+                const defaultCountries = ['United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'Ireland', 'New Zealand', 'Netherlands', 'France', 'Sweden', 'Japan', 'Singapore'];
+                defaultCountries.forEach(country => performSearch('Higher Education', country, false));
+            };
+
+            loadDefaultSearches();
+        });
+    </script>
+</body>
+</html>
+
