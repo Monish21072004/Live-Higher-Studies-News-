@@ -38,16 +38,35 @@
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <header class="mb-8">
-            <h1 class="text-3xl font-bold text-white">Higher Education Student Hub</h1>
-            <p class="text-gray-400 mt-1">Live, auto-updating news and curated data for students worldwide.</p>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">Higher Education Student Hub</h1>
+                    <p class="text-gray-400 mt-1">Live, auto-updating news and curated data for students worldwide.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                     <label for="currency-select" class="text-sm font-medium text-gray-300">Currency:</label>
+                     <select id="currency-select" class="bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+                         <option value="INR">INR (₹)</option>
+                         <option value="USD">USD ($)</option>
+                         <option value="EUR">EUR (€)</option>
+                         <option value="GBP">GBP (£)</option>
+                         <option value="CAD">CAD (C$)</option>
+                         <option value="AUD">AUD (A$)</option>
+                         <option value="JPY">JPY (¥)</option>
+                     </select>
+                </div>
+            </div>
         </header>
         
         <!-- Vital News Section -->
         <section id="vital-news-section" class="mb-8">
-            <h2 class="text-xl font-bold text-sky-300 mb-4 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Global Student Alerts & Top News
-            </h2>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                <h2 class="text-xl font-bold text-sky-300 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Global Student Alerts & Top News
+                </h2>
+                <span id="last-updated-timestamp" class="text-xs text-gray-500 mt-2 sm:mt-0"></span>
+            </div>
             <div id="vital-news-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Vital news will be loaded here -->
             </div>
@@ -75,15 +94,37 @@
             // --- CONFIGURATION ---
             const scholarshipsSheetId = ""; // e.g., "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
             const vitalKeywords = ['visa', 'policy', 'new rule', 'tuition', 'alert', 'important', 'update', 'deadline', 'change', 'warning', 'fee hike', 'immigration'];
+            const BASELINE_COST_NYC_USD = 1550; // Approx. monthly cost for a single person in NYC (excl. rent) as the 100-point baseline.
 
             // --- DOM Elements ---
             const searchForm = document.getElementById('search-form');
             const countryInput = document.getElementById('country-input');
             const resultsContainer = document.getElementById('results-container');
             const vitalNewsContainer = document.getElementById('vital-news-container');
+            const currencySelect = document.getElementById('currency-select');
             
             let allCostData = [];
             let allScholarshipData = [];
+            let selectedCurrency = 'INR';
+
+            // --- CURATED INSIGHTS DATABASE ---
+            const countryInsights = {
+                'canada': { status: 'Cautious', summary: 'High quality of life and clear immigration pathways, but facing a severe housing crisis and an increasingly competitive job market. Recent government caps on international student permits have created uncertainty.', visaType: 'Study Permit', psw: 'Up to 3 years (PGWP)', officialLink: 'https://www.canada.ca/en/immigration-refugees-citizenship/services/study-canada.html' },
+                'germany': { status: 'Positive', summary: 'Excellent value with low/no tuition fees at public universities. Strong economy, especially for engineering and IT. Learning German is crucial for job market success and social integration.', visaType: 'German Student Visa', psw: '18-month Job Seeker Visa', officialLink: 'https://www.germany-visa.org/student-visa/' },
+                'united kingdom': { status: 'Mixed', summary: 'Home to world-class universities, but the high cost of living and a tightening job market are significant challenges. Recent changes to visa rules for dependents are a key factor.', visaType: 'Student Visa', psw: '2 years (Graduate Route)', officialLink: 'https://www.gov.uk/student-visa' },
+                'australia': { status: 'Mixed', summary: 'Offers a great lifestyle and quality education, with strong demand in healthcare and trades. However, recent visa crackdowns and high living expenses are major concerns for new students.', visaType: 'Student visa (subclass 500)', psw: '2-4 years (TGV)', officialLink: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/student-500' },
+                'united states': { status: 'Mixed', summary: 'Unmatched in university prestige and research opportunities. However, students face very high tuition costs, a complex and competitive job market (H1B lottery), and significant cultural/political divides.', visaType: 'F-1 Visa', psw: '12-36 months (OPT)', officialLink: 'https://travel.state.gov/content/travel/en/us-visas/study.html' },
+                'ireland': { status: 'Positive', summary: 'A strong, English-speaking hub for tech and pharmaceutical giants in Europe. Welcoming culture, but a severe housing shortage, particularly in Dublin, is the primary challenge.', visaType: 'Study Visa (Stamp 2)', psw: 'Up to 2 years', officialLink: 'https://www.irishimmigration.ie/coming-to-study-in-ireland/' },
+                'netherlands': { status: 'Positive', summary: 'High-quality education with many English-taught programs. A very open and international society. The job market is good, but like Ireland, it faces a significant housing crunch.', visaType: 'MVV / VVR (Student)', psw: '1 year (Orientation Year)', officialLink: 'https://ind.nl/en/study' },
+                'new zealand': { status: 'Cautious', summary: 'Renowned for its natural beauty and friendly culture. However, it has a smaller job market and recent immigration tightening has made post-study work prospects more challenging.', visaType: 'Fee Paying Student Visa', psw: '1-3 years', officialLink: 'https://www.immigration.govt.nz/new-zealand-visas/visas/visa/fee-paying-student-visa' },
+                'united arab emirates': { status: 'Positive', summary: 'A major hub for business, finance, and tourism with many international university campuses. Strong job prospects in these sectors, but post-study visa is typically tied to securing employment. High standard of living but can be expensive.', visaType: 'Student Visa', psw: 'Varies (often requires sponsorship)', officialLink: 'https://u.ae/en/information-and-services/visa-and-emirates-id/residence-visas/residence-visa-for-studying-in-the-uae' },
+                'france': { status: 'Mixed', summary: 'World-renowned for arts, fashion, and business schools. Affordable tuition at public universities. Post-study job prospects are much stronger if you are fluent in French; bureaucracy can be challenging.', visaType: 'VLS-TS "étudiant"', psw: '1 year (APS)', officialLink: 'https://www.campusfrance.org/en/student-visa-france' },
+                'sweden': { status: 'Positive', summary: 'A global leader in innovation and sustainability with a high quality of life. English is widely spoken, but the cost of living and taxes are high. Strong focus on group work and critical thinking.', visaType: 'Residence Permit for Studies', psw: '12 months to find work', officialLink: 'https://www.migrationsverket.se/English/Private-individuals/Studying-and-researching-in-Sweden.html' },
+                'japan': { status: 'Mixed', summary: 'A unique cultural experience with exceptional universities in technology and engineering. The language barrier is the single biggest hurdle for post-study employment and daily life outside major cities.', visaType: 'Student Visa', psw: 'Up to 1 year (Designated Activities)', officialLink: 'https://www.mofa.go.jp/j_info/visit/visa/long/visa1.html' },
+                'singapore': { status: 'Positive', summary: 'A powerful financial and tech hub in Asia with world-class universities. English is the primary language. The environment is highly competitive, and the cost of living is very high.', visaType: 'Student\'s Pass', psw: '1-3 months (Short-Term Visit Pass)', officialLink: 'https://www.ica.gov.sg/enter-transit-depart/entering-singapore/student-pass' },
+                'switzerland': { status: 'Mixed', summary: 'Offers top-tier research institutions and very high salaries. However, it has an extremely high cost of living and a very competitive job market, often requiring local language skills (German, French, or Italian).', visaType: 'National D-Visa', psw: '6 months to find work', officialLink: 'https://www.sem.admin.ch/sem/en/home/themen/einreise/visumantragsformular.html' },
+                'south korea': { status: 'Mixed', summary: 'A vibrant, tech-advanced country with a dynamic culture. The work culture is known to be demanding, and proficiency in Korean is essential for securing good post-study employment.', visaType: 'D-2 Student Visa', psw: 'Varies (D-10 Job-Seeker Visa)', officialLink: 'https://www.studyinkorea.go.kr/en/main.do' }
+            };
             
             const sampleScholarshipData = [
                 { Country: "Canada", "Scholarship Name": "Vanier Canada Graduate Scholarships", Field: "PhD Programs", Link: "https://vanier.gc.ca/", Deadline: "Varies" },
@@ -96,9 +137,7 @@
             const fetchLocalJson = async (filePath) => {
                 try {
                     const response = await fetch(filePath);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     return await response.json();
                 } catch (e) {
                     console.error(`Failed to fetch local JSON file: ${filePath}`, e);
@@ -118,9 +157,7 @@
                     const rows = json.table.rows.map(r => {
                         const rowData = {};
                         if (r.c) {
-                           r.c.forEach((cell, index) => {
-                                rowData[headers[index]] = cell?.v ?? null;
-                            });
+                           r.c.forEach((cell, index) => { rowData[headers[index]] = cell?.v ?? null; });
                         }
                         return rowData;
                     });
@@ -158,8 +195,7 @@
                 const contents = panel.querySelectorAll('.tab-content');
                 tabs.forEach(tab => {
                     tab.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                        e.preventDefault(); e.stopPropagation();
                         tabs.forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         contents.forEach(c => c.classList.remove('active'));
@@ -174,7 +210,7 @@
 
                 const countryCodeMap = { 'united states': 'us', 'usa': 'us', 'united kingdom': 'gb', 'uk': 'gb', 'canada': 'ca', 'australia': 'au', 'germany': 'de', 'ireland': 'ie', 'new zealand': 'nz', 'netherlands': 'nl', 'france': 'fr', 'sweden': 'se', 'japan': 'jp', 'singapore': 'sg' };
                 const countryCode = countryCodeMap[countryName.toLowerCase()] || countryName.toLowerCase().substring(0, 2);
-
+                
                 const panel = document.createElement('div');
                 panel.id = panelId;
                 panel.className = 'dashboard-panel';
@@ -185,7 +221,7 @@
                                    </h2>
                                    <div class="flex gap-2 mb-4">
                                        <button class="tab-button active" data-target="#news-${panelId}">News</button>
-                                       <button class="tab-button" data-target="#info-${panelId}">Cost of Living</button>
+                                       <button class="tab-button" data-target="#info-${panelId}">Cost & Visa</button>
                                        <button class="tab-button" data-target="#scholarships-${panelId}">Scholarships</button>
                                    </div>
                                    <div class="flex-grow overflow-y-auto" style="min-height: 300px;">
@@ -198,19 +234,35 @@
                 setupTabs(panel);
 
                 renderNews(panel.querySelector(`#news-${panelId}`), countryName);
-                renderCostOfLiving(panel.querySelector(`#info-${panelId}`), countryName);
+                renderCostAndVisa(panel.querySelector(`#info-${panelId}`), countryName);
                 renderScholarships(panel.querySelector(`#scholarships-${panelId}`), countryName);
             };
 
             const renderNews = async (container, countryName) => {
-                const query = `"${countryName}" study abroad for international students`;
-                const newsItems = await fetchLiveNews(query);
                 if (!container) return;
                 
+                const queries = [
+                    `"${countryName}" study abroad for international students`,
+                    `"${countryName}" international students`,
+                    `"${countryName}" university education`,
+                    `"${countryName}"`
+                ];
+
+                let newsItems = null;
+                for (const query of queries) {
+                    newsItems = await fetchLiveNews(query);
+                    if (newsItems && newsItems.length > 0) {
+                        console.log(`Found news for "${countryName}" with query: ${query}`);
+                        break;
+                    }
+                    console.log(`No news for "${countryName}" with query: ${query}. Trying next fallback.`);
+                }
+                
                 if (!newsItems || newsItems.length === 0) {
-                    container.innerHTML = `<p class="text-gray-400 p-4">No recent news found for ${countryName}.</p>`;
+                    container.innerHTML = `<p class="text-gray-400 p-4">Could not find any recent news for ${countryName}.</p>`;
                     return;
                 }
+
                 const newsGrid = document.createElement('div');
                 newsGrid.className = 'space-y-4';
                 newsGrid.innerHTML = newsItems.slice(0, 5).map(item => {
@@ -237,10 +289,7 @@
                 const newsItems = await fetchLiveNews(query);
                 if (!vitalNewsContainer) return;
 
-                if (!newsItems || newsItems.length === 0) {
-                    vitalNewsContainer.innerHTML = `<p class="text-gray-400 p-4 md:col-span-3">No major global alerts found at this time.</p>`;
-                    return;
-                }
+                if (!newsItems || newsItems.length === 0) { vitalNewsContainer.innerHTML = `<p class="text-gray-400 p-4 md:col-span-3">No major global alerts found at this time.</p>`; return; }
                 vitalNewsContainer.innerHTML = newsItems.slice(0, 3).map(item => `
                     <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-sky-900/50 hover:bg-sky-800 transition-colors border border-sky-700 hover:border-sky-500">
                         <span class="absolute top-3 right-3 text-xs bg-red-600 text-white font-semibold px-2 py-1 rounded-full animate-pulse">VITAL</span>
@@ -252,35 +301,64 @@
                     </a>`).join('');
             };
 
-            const renderCostOfLiving = (container, countryName) => {
-                const data = allCostData.find(row => row.Country?.toLowerCase() === countryName.toLowerCase());
-                if (!data) {
-                    container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">No cost of living data found for ${countryName} in the database.</div>`;
-                    return;
+            const convertCurrency = async (amountUSD, targetCurrency) => {
+                if (targetCurrency === 'USD') return amountUSD;
+                try {
+                    const response = await fetch(`https://api.frankfurter.app/latest?amount=${amountUSD}&from=USD&to=${targetCurrency}`);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const data = await response.json();
+                    return data.rates[targetCurrency];
+                } catch (error) {
+                    console.error("Currency conversion failed:", error);
+                    return null;
                 }
-                container.innerHTML = `
-                    <div class="space-y-4 text-sm p-4 rounded-lg bg-gray-900/50 border border-gray-700">
+            };
+            
+            const renderCostAndVisa = async (container, countryName) => {
+                const costData = allCostData.find(row => row.Country?.toLowerCase() === countryName.toLowerCase());
+                const insightData = countryInsights[countryName.toLowerCase()] || { visaType: 'N/A', psw: 'N/A', officialLink: '#' };
+
+                let costHtml = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">No cost of living data found for ${countryName}.</div>`;
+                if (costData) {
+                    const costIndex = costData['Cost of Living Index'];
+                    const estimatedCostUSD = (costIndex / 100) * BASELINE_COST_NYC_USD;
+                    const convertedCost = await convertCurrency(estimatedCostUSD, selectedCurrency);
+                    const formattedCost = convertedCost ? new Intl.NumberFormat(undefined, { style: 'currency', currency: selectedCurrency, minimumFractionDigits: 0 }).format(convertedCost) : 'Calculating...';
+                    
+                    costHtml = `
+                        <div class="pb-4 border-b border-gray-700">
+                           <h4 class="font-semibold text-gray-200 mb-2 text-base">Estimated Monthly Cost</h4>
+                           <p class="text-3xl font-bold text-sky-400">${formattedCost} <span class="text-lg font-medium text-gray-400">/ month</span></p>
+                           <p class="text-xs text-gray-500 mt-1">(Excluding rent, based on Numbeo data relative to NYC)</p>
+                        </div>
                         <div>
-                            <h4 class="font-semibold text-gray-200 mb-2 text-base">Cost of Living Snapshot (Source: Numbeo)</h4>
-                             <p class="text-xs text-gray-400 mb-2">Indices are relative to New York City (NYC = 100). A score of 70 means it's 30% cheaper than NYC.</p>
+                            <h4 class="font-semibold text-gray-200 my-2 text-base">Cost Indices (Source: Numbeo)</h4>
                             <ul class="space-y-1 text-gray-300 list-disc list-inside">
-                                <li><strong>Cost of Living Index:</strong> ${data['Cost of Living Index'] || 'N/A'}</li>
-                                <li><strong>Rent Index:</strong> ${data['Rent Index'] || 'N/A'}</li>
-                                <li><strong>Groceries Index:</strong> ${data['Groceries Index'] || 'N/A'}</li>
-                                <li><strong>Restaurant Price Index:</strong> ${data['Restaurant Price Index'] || 'N/A'}</li>
-                                <li class="font-bold"><strong>Purchasing Power Index:</strong> ${data['Local Purchasing Power Index'] || 'N/A'}</li>
+                                <li><strong>Cost of Living Index:</strong> ${costData['Cost of Living Index'] || 'N/A'}</li>
+                                <li><strong>Rent Index:</strong> ${costData['Rent Index'] || 'N/A'}</li>
+                                <li><strong>Purchasing Power Index:</strong> ${costData['Local Purchasing Power Index'] || 'N/A'}</li>
                             </ul>
                              <a href="https://www.numbeo.com/cost-of-living/country_result.jsp?country=${encodeURIComponent(countryName)}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline mt-2 inline-block font-semibold">View Detailed Data on Numbeo &rarr;</a>
+                        </div>`;
+                }
+
+                container.innerHTML = `
+                    <div class="space-y-4 text-sm p-4 rounded-lg bg-gray-900/50 border border-gray-700">
+                        ${costHtml}
+                        <div class="border-t border-gray-700 pt-4">
+                            <h4 class="font-semibold text-gray-200 mb-2 text-base">Visa Snapshot</h4>
+                            <ul class="space-y-1 text-gray-300 list-disc list-inside">
+                                <li><strong>Primary Visa:</strong> ${insightData.visaType}</li>
+                                <li><strong>Post-Study Work:</strong> ${insightData.psw}</li>
+                            </ul>
+                            <a href="${insightData.officialLink}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline mt-2 inline-block font-semibold">Official Immigration Site &rarr;</a>
                         </div>
                     </div>`;
             };
 
             const renderScholarships = (container, countryName) => {
                 const items = allScholarshipData.filter(row => row.Country?.toLowerCase() === countryName.toLowerCase());
-                if (items.length === 0) {
-                    container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">No scholarships found for ${countryName} in the database.</div>`;
-                    return;
-                }
+                if (items.length === 0) { container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">No scholarships found for ${countryName}.</div>`; return; }
                 const scholarshipGrid = document.createElement('div');
                 scholarshipGrid.className = 'space-y-4';
                 scholarshipGrid.innerHTML = items.map(item => `
@@ -298,42 +376,50 @@
                 container.appendChild(scholarshipGrid);
             };
             
+            const updateTimestamp = () => {
+                 const timestampEl = document.getElementById('last-updated-timestamp');
+                 if(timestampEl) {
+                    const now = new Date();
+                    timestampEl.textContent = `Last updated: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                 }
+            };
+
             const refreshAllNews = () => {
                 console.log(`[${new Date().toLocaleTimeString()}] Auto-refreshing all news feeds...`);
                 renderVitalNews();
                 document.querySelectorAll('.dashboard-panel[data-country-name]').forEach(card => {
                     const countryName = card.dataset.countryName;
                     const newsContainer = card.querySelector(`.tab-content[id^="news-"]`);
-                    if (newsContainer) {
-                        renderNews(newsContainer, countryName);
-                    }
+                    if (newsContainer) { renderNews(newsContainer, countryName); }
                 });
+                updateTimestamp();
             };
+
+            const refreshAllCosts = () => {
+                document.querySelectorAll('.dashboard-panel[data-country-name]').forEach(card => {
+                    const countryName = card.dataset.countryName;
+                    const costContainer = card.querySelector(`.tab-content[id^="info-"]`);
+                    if (costContainer) { renderCostAndVisa(costContainer, countryName); }
+                });
+            }
 
             const initializeApp = async () => {
                 resultsContainer.innerHTML = `<div class="loader mx-auto lg:col-span-2"></div><p class="text-center text-gray-400 lg:col-span-2 -mt-4">Loading database...</p>`;
                 vitalNewsContainer.innerHTML = `<div class="loader"></div>`;
-                
                 renderVitalNews();
-
-                // Load cost data from the local JSON file
                 const costData = await fetchLocalJson('numbeo_data.json');
                 let scholarshipData;
                 let dataLoadError = false;
 
-                if (costData) {
-                    allCostData = costData;
+                if (costData) { allCostData = costData;
                 } else {
                     console.error("CRITICAL: Could not load numbeo_data.json. Make sure the file exists in the same directory as the HTML file.");
                     dataLoadError = true;
                 }
 
-                if (scholarshipsSheetId) {
-                    scholarshipData = await fetchSheetData(scholarshipsSheetId);
-                }
+                if (scholarshipsSheetId) { scholarshipData = await fetchSheetData(scholarshipsSheetId); }
 
-                if (scholarshipData) {
-                    allScholarshipData = scholarshipData;
+                if (scholarshipData) { allScholarshipData = scholarshipData;
                 } else {
                     allScholarshipData = sampleScholarshipData;
                     if (scholarshipsSheetId) dataLoadError = true;
@@ -348,8 +434,9 @@
                     resultsContainer.parentElement.insertBefore(errorToast, resultsContainer);
                 }
                  
-                ['Canada', 'Germany', 'United Kingdom'].forEach(country => renderCountryCard(country));
+                ['Canada', 'Germany', 'United Kingdom', 'Australia', 'United States', 'Ireland', 'Netherlands', 'New Zealand'].forEach(country => renderCountryCard(country));
                 
+                updateTimestamp(); // Set initial timestamp
                 setInterval(refreshAllNews, 600000); 
             };
 
@@ -359,6 +446,11 @@
                 if (!country) return;
                 renderCountryCard(country);
                 countryInput.value = '';
+            });
+
+            currencySelect.addEventListener('change', (e) => {
+                selectedCurrency = e.target.value;
+                refreshAllCosts();
             });
 
             initializeApp();
