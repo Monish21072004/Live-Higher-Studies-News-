@@ -32,6 +32,14 @@
         .tab-button:not(.active) { background-color: #374151; color: #d1d5db; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
+        /* --- NEW CSS FOR REVIEWS --- */
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; }
+        .star-rating input[type="radio"] { display: none; }
+        .star-rating label { font-size: 1.5rem; color: #6b7280; cursor: pointer; transition: color 0.2s; }
+        .star-rating input[type="radio"]:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label { color: #f59e0b; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 p-4 sm:p-6 lg:p-8">
@@ -92,9 +100,12 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // --- CONFIGURATION ---
-            const scholarshipsSheetId = ""; // e.g., "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
             const vitalKeywords = ['visa', 'policy', 'new rule', 'tuition', 'alert', 'important', 'update', 'deadline', 'change', 'warning', 'fee hike', 'immigration'];
-            const BASELINE_COST_NYC_USD = 1550; // Approx. monthly cost for a single person in NYC (excl. rent) as the 100-point baseline.
+            const BASELINE_COST_NYC_USD = 1550;
+            
+            // --- JSONBIN.IO CONFIGURATION ---
+            const JSONBIN_API_KEY = '$2a$10$ORssM/JFzmLqsCpbUYKz..AzQnSrptMlmtwJBEDUEc4fdkd9xa2Ha';
+            const JSONBIN_BIN_ID = '68d671d1ae596e708ffc8400';
 
             // --- DOM Elements ---
             const searchForm = document.getElementById('search-form');
@@ -104,7 +115,6 @@
             const currencySelect = document.getElementById('currency-select');
             
             let allCostData = [];
-            let allScholarshipData = [];
             let selectedCurrency = 'INR';
 
             // --- CURATED INSIGHTS DATABASE ---
@@ -125,13 +135,6 @@
                 'switzerland': { status: 'Mixed', summary: 'Offers top-tier research institutions and very high salaries. However, it has an extremely high cost of living and a very competitive job market, often requiring local language skills (German, French, or Italian).', visaType: 'National D-Visa', psw: '6 months to find work', officialLink: 'https://www.sem.admin.ch/sem/en/home/themen/einreise/visumantragsformular.html' },
                 'south korea': { status: 'Mixed', summary: 'A vibrant, tech-advanced country with a dynamic culture. The work culture is known to be demanding, and proficiency in Korean is essential for securing good post-study employment.', visaType: 'D-2 Student Visa', psw: 'Varies (D-10 Job-Seeker Visa)', officialLink: 'https://www.studyinkorea.go.kr/en/main.do' }
             };
-            
-            const sampleScholarshipData = [
-                { Country: "Canada", "Scholarship Name": "Vanier Canada Graduate Scholarships", Field: "PhD Programs", Link: "https://vanier.gc.ca/", Deadline: "Varies" },
-                { Country: "Germany", "Scholarship Name": "DAAD Scholarship Programs", Field: "Masters, PhD", Link: "https://www.daad.de/en/study-and-research-in-germany/scholarships/", Deadline: "Varies" },
-                { Country: "United Kingdom", "Scholarship Name": "Chevening Scholarships", Field: "Masters", Link: "https://www.chevening.org/", Deadline: "Annually in Nov" },
-                { Country: "Australia", "Scholarship Name": "Australia Awards Scholarships", Field: "Bachelors, Masters, PhD", Link: "https://www.dfat.gov.au/people-to-people/australia-awards/australia-awards-scholarships", Deadline: "Varies by country" }
-            ];
 
             // --- DATA FETCHING ---
             const fetchLocalJson = async (filePath) => {
@@ -145,29 +148,6 @@
                 }
             };
             
-            const fetchSheetData = async (sheetId) => {
-                 if (!sheetId) return null;
-                const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
-                try {
-                    const res = await fetch(sheetURL);
-                    if (!res.ok) throw new Error(`Failed to fetch sheet ID ${sheetId}`);
-                    const text = await res.text();
-                    const json = JSON.parse(text.substr(47).slice(0, -2));
-                    const headers = json.table.cols.map(col => col.label);
-                    const rows = json.table.rows.map(r => {
-                        const rowData = {};
-                        if (r.c) {
-                           r.c.forEach((cell, index) => { rowData[headers[index]] = cell?.v ?? null; });
-                        }
-                        return rowData;
-                    });
-                    return rows;
-                } catch (error) {
-                    console.error("Error fetching sheet data:", error);
-                    return null;
-                }
-            };
-
             const fetchLiveNews = async (query) => {
                 const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
                 const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}`;
@@ -211,6 +191,10 @@
                 const countryCodeMap = { 'united states': 'us', 'usa': 'us', 'united kingdom': 'gb', 'uk': 'gb', 'canada': 'ca', 'australia': 'au', 'germany': 'de', 'ireland': 'ie', 'new zealand': 'nz', 'netherlands': 'nl', 'france': 'fr', 'sweden': 'se', 'japan': 'jp', 'singapore': 'sg' };
                 const countryCode = countryCodeMap[countryName.toLowerCase()] || countryName.toLowerCase().substring(0, 2);
                 
+                const insight = countryInsights[countryName.toLowerCase()] || { status: 'Info', summary: 'General insights for this country are not available yet. Please conduct detailed research on visa rules, job markets, and local conditions.', visaType: 'N/A', psw: 'N/A', officialLink: '#' };
+                const statusColors = { Positive: 'bg-green-500', Mixed: 'bg-yellow-500', Cautious: 'bg-orange-500', Info: 'bg-sky-500' };
+                const statusColor = statusColors[insight.status] || 'bg-gray-500';
+
                 const panel = document.createElement('div');
                 panel.id = panelId;
                 panel.className = 'dashboard-panel';
@@ -219,15 +203,28 @@
                                       <img src="https://flagcdn.com/w40/${countryCode}.png" alt="${countryName} Flag" class="w-8 h-auto rounded" onerror="this.style.display='none'">
                                       ${countryName}
                                    </h2>
-                                   <div class="flex gap-2 mb-4">
+                                    <div class="mb-4 border-b border-gray-700 pb-4">
+                                        <div class="flex items-start gap-3">
+                                            <div class="flex-shrink-0">
+                                                <span class="font-bold text-xs py-1 px-3 rounded-full text-white ${statusColor}">${insight.status}</span>
+                                            </div>
+                                            <div>
+                                                <h3 class="font-semibold text-base text-gray-200">Student Outlook</h3>
+                                                <p class="text-sm text-gray-400 mt-1">${insight.summary}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                   <div class="flex flex-wrap gap-2 mb-4">
                                        <button class="tab-button active" data-target="#news-${panelId}">News</button>
                                        <button class="tab-button" data-target="#info-${panelId}">Cost & Visa</button>
                                        <button class="tab-button" data-target="#scholarships-${panelId}">Scholarships</button>
+                                       <button class="tab-button" data-target="#reviews-${panelId}">Reviews</button>
                                    </div>
                                    <div class="flex-grow overflow-y-auto" style="min-height: 300px;">
                                        <div id="news-${panelId}" class="tab-content active"><div class="loader mx-auto mt-8"></div></div>
                                        <div id="info-${panelId}" class="tab-content"><div class="loader mx-auto mt-8"></div></div>
-                                       <div id="scholarships-${panelId}" class="tab-content"><div class="loader mx-auto mt-8"></div></div>
+                                       <div id="scholarships-${panelId}" class="tab-content"></div>
+                                       <div id="reviews-${panelId}" class="tab-content"><div class="loader mx-auto mt-8"></div></div>
                                    </div>`;
 
                 resultsContainer.prepend(panel);
@@ -236,52 +233,77 @@
                 renderNews(panel.querySelector(`#news-${panelId}`), countryName);
                 renderCostAndVisa(panel.querySelector(`#info-${panelId}`), countryName);
                 renderScholarships(panel.querySelector(`#scholarships-${panelId}`), countryName);
+                renderReviews(panel.querySelector(`#reviews-${panelId}`), countryName);
             };
 
             const renderNews = async (container, countryName) => {
                 if (!container) return;
-                
+            
                 const queries = [
                     `"${countryName}" study abroad for international students`,
                     `"${countryName}" international students`,
                     `"${countryName}" university education`,
                     `"${countryName}"`
                 ];
-
+            
                 let newsItems = null;
                 for (const query of queries) {
                     newsItems = await fetchLiveNews(query);
-                    if (newsItems && newsItems.length > 0) {
-                        console.log(`Found news for "${countryName}" with query: ${query}`);
-                        break;
-                    }
-                    console.log(`No news for "${countryName}" with query: ${query}. Trying next fallback.`);
+                    if (newsItems && newsItems.length > 0) { break; }
                 }
-                
+            
                 if (!newsItems || newsItems.length === 0) {
                     container.innerHTML = `<p class="text-gray-400 p-4">Could not find any recent news for ${countryName}.</p>`;
                     return;
                 }
-
-                const newsGrid = document.createElement('div');
-                newsGrid.className = 'space-y-4';
-                newsGrid.innerHTML = newsItems.slice(0, 5).map(item => {
-                    const titleLower = item.title.toLowerCase();
-                    const isVital = vitalKeywords.some(keyword => titleLower.includes(keyword));
-                    const vitalBadge = isVital ? `<span class="absolute top-3 right-3 text-xs bg-red-600 text-white font-semibold px-2 py-1 rounded-full animate-pulse">VITAL</span>` : '';
-                    
-                    return `
-                    <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-gray-900/50 hover:bg-gray-700 transition-colors border border-gray-700 hover:border-sky-500">
-                        ${vitalBadge}
-                        <p class="font-semibold text-white flex-grow">${item.title}</p>
-                        <div class="mt-3 pt-3 border-t border-gray-600 flex justify-between items-center">
-                            <span class="text-xs text-gray-500">Source: ${item.source}</span>
-                            <span class="text-sm text-sky-400 font-semibold">Read More &rarr;</span>
-                        </div>
-                    </a>`;
-                }).join('');
+            
+                const newsItemsContainer = document.createElement('div');
+                newsItemsContainer.className = 'space-y-4';
+            
+                const loadMoreButton = document.createElement('button');
+                loadMoreButton.className = 'block text-center w-full bg-gray-700 hover:bg-gray-600 text-sky-300 font-bold py-3 px-4 rounded-md transition-colors mt-4';
+                loadMoreButton.textContent = 'View More News →';
+            
+                let displayedCount = 0;
+            
+                const renderBatch = () => {
+                    const end = displayedCount + 5;
+                    const batch = newsItems.slice(displayedCount, end);
+            
+                    const batchHtml = batch.map(item => {
+                        const titleLower = item.title.toLowerCase();
+                        const isVital = vitalKeywords.some(keyword => titleLower.includes(keyword));
+                        const vitalBadge = isVital ? `<span class="absolute top-3 right-3 text-xs bg-red-600 text-white font-semibold px-2 py-1 rounded-full animate-pulse">VITAL</span>` : '';
+                        
+                        return `
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-gray-900/50 hover:bg-gray-700 transition-colors border border-gray-700 hover:border-sky-500">
+                            ${vitalBadge}
+                            <p class="font-semibold text-white flex-grow">${item.title}</p>
+                            <div class="mt-3 pt-3 border-t border-gray-600 flex justify-between items-center">
+                                <span class="text-xs text-gray-500">Source: ${item.source}</span>
+                                <span class="text-sm text-sky-400 font-semibold">Read More &rarr;</span>
+                            </div>
+                        </a>`;
+                    }).join('');
+            
+                    newsItemsContainer.insertAdjacentHTML('beforeend', batchHtml);
+                    displayedCount = end;
+            
+                    if (displayedCount >= newsItems.length) {
+                        loadMoreButton.remove();
+                    }
+                };
+            
+                loadMoreButton.addEventListener('click', renderBatch);
+            
                 container.innerHTML = '';
-                container.appendChild(newsGrid);
+                container.appendChild(newsItemsContainer);
+            
+                if (newsItems.length > 5) {
+                    container.appendChild(loadMoreButton);
+                }
+            
+                renderBatch();
             };
 
              const renderVitalNews = async () => {
@@ -315,6 +337,10 @@
             };
             
             const renderCostAndVisa = async (container, countryName) => {
+                if (!allCostData) { // Add a check here
+                    container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">Cost of living data is unavailable.</div>`;
+                    return;
+                }
                 const costData = allCostData.find(row => row.Country?.toLowerCase() === countryName.toLowerCase());
                 const insightData = countryInsights[countryName.toLowerCase()] || { visaType: 'N/A', psw: 'N/A', officialLink: '#' };
 
@@ -357,23 +383,147 @@
             };
 
             const renderScholarships = (container, countryName) => {
-                const items = allScholarshipData.filter(row => row.Country?.toLowerCase() === countryName.toLowerCase());
-                if (items.length === 0) { container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">No scholarships found for ${countryName}.</div>`; return; }
-                const scholarshipGrid = document.createElement('div');
-                scholarshipGrid.className = 'space-y-4';
-                scholarshipGrid.innerHTML = items.map(item => `
-                     <a href="${item.Link}" target="_blank" rel="noopener noreferrer" class="flex flex-col h-full block p-4 rounded-lg bg-gray-900/50 hover:bg-gray-700 transition-colors border border-gray-700 hover:border-sky-500">
-                        <div class="flex-grow">
-                            <p class="font-semibold text-white">${item['Scholarship Name']}</p>
-                            <p class="text-sm text-gray-400 mt-1"><strong>Field:</strong> ${item.Field}</p>
-                        </div>
-                        <div class="mt-3 pt-3 border-t border-gray-600 flex justify-between items-center">
-                            <span class="text-xs text-yellow-400 bg-yellow-900/50 px-2 py-1 rounded">Deadline: ${item.Deadline}</span>
-                            <span class="text-sm text-sky-400 font-semibold">Learn More &rarr;</span>
-                        </div>
-                    </a>`).join('');
-                container.innerHTML = '';
-                container.appendChild(scholarshipGrid);
+                const mastersQuery = `site:scholars4dev.com "masters scholarships" "${countryName}"`;
+                const bachelorsQuery = `site:scholars4dev.com "bachelors scholarships" "${countryName}"`;
+                
+                const mastersUrl = `https://www.google.com/search?q=${encodeURIComponent(mastersQuery)}`;
+                const bachelorsUrl = `https://www.google.com/search?q=${encodeURIComponent(bachelorsQuery)}`;
+                
+                container.innerHTML = `
+                    <div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-300 space-y-4">
+                        <p>Use these direct links to find scholarships for <strong>${countryName}</strong> on <strong>scholars4dev.com</strong>, powered by a live Google search.</p>
+                        <a href="${mastersUrl}" target="_blank" rel="noopener noreferrer" class="block text-center w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-md transition-colors">
+                            Find Masters Scholarships &rarr;
+                        </a>
+                        <a href="${bachelorsUrl}" target="_blank" rel="noopener noreferrer" class="block text-center w-full bg-sky-800 hover:bg-sky-900 text-white font-bold py-3 px-4 rounded-md transition-colors">
+                            Find Bachelors Scholarships &rarr;
+                        </a>
+                    </div>
+                `;
+            };
+
+            // --- REVIEW FUNCTIONS ---
+            const fetchReviews = async () => {
+                if (JSONBIN_API_KEY.includes('PASTE_YOUR_MASTER')) return { reviews: [] };
+                try {
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                        headers: { 'X-Master-Key': JSONBIN_API_KEY, 'X-Bin-Meta': false }
+                    });
+                    if (!response.ok) throw new Error('Failed to fetch reviews');
+                    const data = await response.json();
+                    return data || { reviews: [] };
+                } catch (error) {
+                    console.error('Error fetching reviews:', error);
+                    return { reviews: [] };
+                }
+            };
+
+            const postReview = async (newReview) => {
+                if (JSONBIN_API_KEY.includes('PASTE_YOUR_MASTER')) return false;
+                try {
+                    const currentData = await fetchReviews();
+                    const updatedReviews = [newReview, ...currentData.reviews]; 
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': JSONBIN_API_KEY
+                        },
+                        body: JSON.stringify({ reviews: updatedReviews })
+                    });
+                    if (!response.ok) throw new Error('Failed to post review');
+                    return true;
+                } catch (error) {
+                    console.error('Error posting review:', error);
+                    return false;
+                }
+            };
+
+            const renderReviews = async (container, countryName) => {
+                let formHtml = `
+                    <div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700">
+                        <h4 class="font-bold text-lg text-white mb-3">Share Your Experience</h4>
+                        <form class="space-y-4" id="review-form-${countryName.replace(/\s+/g, '-')}">
+                            <input type="hidden" name="country" value="${countryName}">
+                            <div>
+                                <label class="text-sm font-medium text-gray-300">Your Name</label>
+                                <input type="text" name="name" required class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="e.g., Anjali S.">
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-300">Overall Rating</label>
+                                <div class="star-rating mt-1">
+                                    <input type="radio" id="5-stars-${countryName}" name="rating" value="5" required/><label for="5-stars-${countryName}">&#9733;</label>
+                                    <input type="radio" id="4-stars-${countryName}" name="rating" value="4" /><label for="4-stars-${countryName}">&#9733;</label>
+                                    <input type="radio" id="3-stars-${countryName}" name="rating" value="3" /><label for="3-stars-${countryName}">&#9733;</label>
+                                    <input type="radio" id="2-stars-${countryName}" name="rating" value="2" /><label for="2-stars-${countryName}">&#9733;</label>
+                                    <input type="radio" id="1-star-${countryName}" name="rating" value="1" /><label for="1-star-${countryName}">&#9733;</label>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-300">Your Review</label>
+                                <textarea name="comment" required rows="4" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Share your pros, cons, and tips for future students..."></textarea>
+                            </div>
+                            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Submit Review</button>
+                            <div class="submit-message text-center text-sm pt-2"></div>
+                        </form>
+                    </div>`;
+
+                const allReviewsData = await fetchReviews();
+                const countryReviews = allReviewsData.reviews ? allReviewsData.reviews.filter(r => r.country === countryName) : [];
+
+                let reviewsHtml = `<p class="text-gray-400 text-center py-6">Be the first to leave a review for ${countryName}!</p>`;
+                if (countryReviews.length > 0) {
+                    reviewsHtml = countryReviews.map(review => {
+                        const stars = '&#9733;'.repeat(review.rating) + '&#9734;'.repeat(5 - review.rating);
+                        return `
+                        <div class="p-4 rounded-lg bg-gray-800 border border-gray-700">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="font-bold text-white">${review.name}</p>
+                                    <p class="text-xs text-gray-400">${new Date(review.timestamp).toLocaleDateString()}</p>
+                                </div>
+                                <span class="text-lg text-amber-400">${stars}</span>
+                            </div>
+                            <p class="text-gray-300 mt-3 whitespace-pre-wrap">${review.comment}</p>
+                        </div>`;
+                    }).join('');
+                }
+                
+                container.innerHTML = `<div class="space-y-4">${formHtml}<div class="mt-6 space-y-4" id="reviews-list-${countryName.replace(/\s+/g, '-')}">${reviewsHtml}</div></div>`;
+
+                const reviewForm = container.querySelector('form');
+                reviewForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const reviewData = {
+                        name: formData.get('name'),
+                        country: formData.get('country'),
+                        rating: parseInt(formData.get('rating'), 10),
+                        comment: formData.get('comment'),
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    const submitButton = e.target.querySelector('button[type="submit"]');
+                    const messageDiv = e.target.querySelector('.submit-message');
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Submitting...';
+                    messageDiv.textContent = '';
+                    
+                    const success = await postReview(reviewData);
+
+                    if(success) {
+                        messageDiv.textContent = 'Thank you! Your review has been submitted.';
+                        messageDiv.className = 'submit-message text-center text-sm pt-2 text-green-400';
+                        e.target.reset();
+                        renderReviews(container, countryName); 
+                    } else {
+                        messageDiv.textContent = 'Submission failed. Please check API keys or try again.';
+                         messageDiv.className = 'submit-message text-center text-sm pt-2 text-red-400';
+                    }
+
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Submit Review';
+                });
             };
             
             const updateTimestamp = () => {
@@ -401,42 +551,27 @@
                     const costContainer = card.querySelector(`.tab-content[id^="info-"]`);
                     if (costContainer) { renderCostAndVisa(costContainer, countryName); }
                 });
-            }
+            };
 
             const initializeApp = async () => {
-                resultsContainer.innerHTML = `<div class="loader mx-auto lg:col-span-2"></div><p class="text-center text-gray-400 lg:col-span-2 -mt-4">Loading database...</p>`;
+                resultsContainer.innerHTML = `<div class="loader mx-auto lg:col-span-2"></div><p class="text-center text-gray-400 lg:col-span-2 -mt-4">Loading application...</p>`;
                 vitalNewsContainer.innerHTML = `<div class="loader"></div>`;
                 renderVitalNews();
-                const costData = await fetchLocalJson('numbeo_data.json');
-                let scholarshipData;
-                let dataLoadError = false;
 
-                if (costData) { allCostData = costData;
-                } else {
-                    console.error("CRITICAL: Could not load numbeo_data.json. Make sure the file exists in the same directory as the HTML file.");
-                    dataLoadError = true;
-                }
-
-                if (scholarshipsSheetId) { scholarshipData = await fetchSheetData(scholarshipsSheetId); }
-
-                if (scholarshipData) { allScholarshipData = scholarshipData;
-                } else {
-                    allScholarshipData = sampleScholarshipData;
-                    if (scholarshipsSheetId) dataLoadError = true;
-                }
+                allCostData = await fetchLocalJson('numbeo_data.json');
                 
                 resultsContainer.innerHTML = '';
 
-                if (dataLoadError) {
+                if (!allCostData) {
                     const errorToast = document.createElement('div');
                     errorToast.className = "p-4 text-center bg-red-900/50 rounded-lg text-red-300 mb-4";
-                    errorToast.innerHTML = `<p class="font-bold">Database Error</p><p>Could not load one or more data sources. Please check the console for details and verify your setup.</p>`;
+                    errorToast.innerHTML = `<p class="font-bold">Database Error</p><p>CRITICAL: Could not load 'numbeo_data.json'. Make sure the file is in the same folder as this HTML file.</p>`;
                     resultsContainer.parentElement.insertBefore(errorToast, resultsContainer);
                 }
                  
                 ['Canada', 'Germany', 'United Kingdom', 'Australia', 'United States', 'Ireland', 'Netherlands', 'New Zealand'].forEach(country => renderCountryCard(country));
                 
-                updateTimestamp(); // Set initial timestamp
+                updateTimestamp();
                 setInterval(refreshAllNews, 600000); 
             };
 
