@@ -5,83 +5,102 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Higher Education Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(180deg, #111827 0%, #0c111c 100%);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
         .dashboard-panel {
-            background-color: #1f2937; /* gray-800 */
+            background-color: rgba(31, 41, 55, 0.5); /* gray-800 with opacity */
+            backdrop-filter: blur(10px);
             border-radius: 0.75rem; /* rounded-xl */
             padding: 1.5rem; /* p-6 */
-            border: 1px solid #374151; /* gray-700 */
-            transition: all 0.2s ease-in-out;
-            display: flex;
-            flex-direction: column;
+            border: 1px solid rgba(55, 65, 81, 0.7); /* gray-700 with opacity */
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 1px 3px rgba(0,0,0,0.08);
         }
+
+        .dashboard-panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0,0,0,0.2), 0 4px 6px rgba(0,0,0,0.1);
+            border-color: rgba(59, 130, 246, 0.5); /* blue-500 with opacity */
+        }
+        
         .loader {
             width: 48px; height: 48px; border: 5px solid #4b5563;
-            border-bottom-color: #e5e7eb; border-radius: 50%;
+            border-bottom-color: #3b82f6; 
+            border-radius: 50%;
             display: inline-block; box-sizing: border-box;
             animation: rotation 1s linear infinite;
         }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         .tab-button {
-            padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 500;
-            cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+            padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; 
+            background-color: transparent;
+            color: #9ca3af; /* gray-400 */
+            border: 1px solid transparent;
         }
-        .tab-button.active { background-color: #0ea5e9; color: white; }
-        .tab-button:not(.active) { background-color: #374151; color: #d1d5db; }
+        .tab-button.active { 
+            background-color: #3b82f6; /* blue-500 */
+            color: white; 
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .tab-button:not(.active):hover {
+            background-color: rgba(55, 65, 81, 0.5); /* gray-700 with opacity */
+            color: #e5e7eb; /* gray-200 */
+        }
+
         .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-out; }
         
-        /* --- NEW CSS FOR REVIEWS --- */
         .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; }
         .star-rating input[type="radio"] { display: none; }
-        .star-rating label { font-size: 1.5rem; color: #6b7280; cursor: pointer; transition: color 0.2s; }
+        .star-rating label { font-size: 1.75rem; color: #4b5563; /* gray-600 */ cursor: pointer; transition: color 0.2s; }
         .star-rating input[type="radio"]:checked ~ label,
         .star-rating label:hover,
-        .star-rating label:hover ~ label { color: #f59e0b; }
+        .star-rating label:hover ~ label { color: #f59e0b; /* amber-500 */ }
+
+        .search-button {
+            background: linear-gradient(to right, #3b82f6, #60a5fa);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px 0 rgba(59, 130, 246, 0.4);
+        }
+
+        .search-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px 0 rgba(59, 130, 246, 0.6);
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 p-4 sm:p-6 lg:p-8">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <header class="mb-8">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-white">Higher Education Student Hub</h1>
-                    <p class="text-gray-400 mt-1">Live, auto-updating news and curated data for students worldwide.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                     <label for="currency-select" class="text-sm font-medium text-gray-300">Currency:</label>
-                     <select id="currency-select" class="bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-sky-500">
-                         <option value="INR">INR (₹)</option>
-                         <option value="USD">USD ($)</option>
-                         <option value="EUR">EUR (€)</option>
-                         <option value="GBP">GBP (£)</option>
-                         <option value="CAD">CAD (C$)</option>
-                         <option value="AUD">AUD (A$)</option>
-                         <option value="JPY">JPY (¥)</option>
-                         <option value="NZD">NZD (NZ$)</option>
-                         <option value="SGD">SGD (S$)</option>
-                         <option value="CHF">CHF (Fr)</option>
-                         <option value="CNY">CNY (¥)</option>
-                         <option value="AED">AED (د.إ)</option>
-                         <option value="KRW">KRW (₩)</option>
-                         <option value="SEK">SEK (kr)</option>
-                         <option value="HKD">HKD (HK$)</option>
-                     </select>
-                </div>
-            </div>
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight">Higher Education Student Hub</h1>
+            <p class="text-gray-400 mt-2 text-lg">Your live dashboard for global student insights.</p>
         </header>
         
         <!-- Vital News Section -->
-        <section id="vital-news-section" class="mb-8">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                <h2 class="text-xl font-bold text-sky-300 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <section id="vital-news-section" class="mb-10 fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5">
+                <h2 class="text-2xl font-bold text-sky-400 flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     Global Student Alerts & Top News
                 </h2>
-                <span id="last-updated-timestamp" class="text-xs text-gray-500 mt-2 sm:mt-0"></span>
+                <span id="last-updated-timestamp" class="text-sm text-gray-500 mt-2 sm:mt-0"></span>
             </div>
             <div id="vital-news-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- Vital news will be loaded here -->
@@ -89,14 +108,34 @@
         </section>
 
         <!-- Search Form -->
-        <form id="search-form" class="mb-8 p-6 bg-gray-800 rounded-xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-end">
+        <form id="search-form" class="mb-10 p-6 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700 flex flex-col sm:flex-row gap-4 items-center fade-in" style="animation-delay: 0.2s;">
             <div class="flex-grow w-full">
-                <label for="country-input" class="text-sm font-medium text-gray-300">Country Name</label>
-                <input type="text" id="country-input" placeholder="e.g., Canada, Germany, Japan..." class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <label for="country-input" class="sr-only">Country Name</label>
+                <input type="text" id="country-input" placeholder="Enter a country to research (e.g., Canada, Germany, Japan...)" class="w-full bg-gray-700/80 border border-gray-600 rounded-md shadow-sm py-3 px-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
             </div>
-            <button type="submit" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-200">
-                Research Country
+            <button type="submit" class="w-full sm:w-auto search-button text-white font-bold py-3 px-8 rounded-md text-lg">
+                Research
             </button>
+             <div class="flex items-center gap-2">
+                 <label for="currency-select" class="text-sm font-medium text-gray-300 sr-only">Currency:</label>
+                 <select id="currency-select" class="bg-gray-700 border border-gray-600 rounded-md shadow-sm py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                     <option value="INR">INR (₹)</option>
+                     <option value="USD">USD ($)</option>
+                     <option value="EUR">EUR (€)</option>
+                     <option value="GBP">GBP (£)</option>
+                     <option value="CAD">CAD (C$)</option>
+                     <option value="AUD">AUD (A$)</option>
+                     <option value="JPY">JPY (¥)</option>
+                     <option value="NZD">NZD (NZ$)</option>
+                     <option value="SGD">SGD (S$)</option>
+                     <option value="CHF">CHF (Fr)</option>
+                     <option value="CNY">CNY (¥)</option>
+                     <option value="AED">AED (د.إ)</option>
+                     <option value="KRW">KRW (₩)</option>
+                     <option value="SEK">SEK (kr)</option>
+                     <option value="HKD">HKD (HK$)</option>
+                 </select>
+            </div>
         </form>
 
         <!-- Results Grid -->
@@ -179,8 +218,10 @@
             
             // --- RENDERING & UI LOGIC ---
             const setupTabs = (panel) => {
+                const tabsContainer = panel.querySelector('.tab-buttons-container');
                 const tabs = panel.querySelectorAll('.tab-button');
                 const contents = panel.querySelectorAll('.tab-content');
+                
                 tabs.forEach(tab => {
                     tab.addEventListener('click', (e) => {
                         e.preventDefault(); e.stopPropagation();
@@ -200,21 +241,21 @@
                 const countryCode = countryCodeMap[countryName.toLowerCase()] || countryName.toLowerCase().substring(0, 2);
                 
                 const insight = countryInsights[countryName.toLowerCase()] || { status: 'Info', summary: 'General insights for this country are not available yet. Please conduct detailed research on visa rules, job markets, and local conditions.', visaType: 'N/A', psw: 'N/A', officialLink: '#' };
-                const statusColors = { Positive: 'bg-green-500', Mixed: 'bg-yellow-500', Cautious: 'bg-orange-500', Info: 'bg-sky-500' };
+                const statusColors = { Positive: 'bg-green-500/80 text-green-100', Mixed: 'bg-yellow-500/80 text-yellow-100', Cautious: 'bg-orange-500/80 text-orange-100', Info: 'bg-sky-500/80 text-sky-100' };
                 const statusColor = statusColors[insight.status] || 'bg-gray-500';
 
                 const panel = document.createElement('div');
                 panel.id = panelId;
-                panel.className = 'dashboard-panel';
+                panel.className = 'dashboard-panel fade-in';
                 panel.setAttribute('data-country-name', countryName);
-                panel.innerHTML = `<h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
-                                      <img src="https://flagcdn.com/w40/${countryCode}.png" alt="${countryName} Flag" class="w-8 h-auto rounded" onerror="this.style.display='none'">
-                                      ${countryName}
+                panel.innerHTML = `<h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                                      <img src="https://flagcdn.com/w40/${countryCode}.png" alt="${countryName} Flag" class="w-8 h-auto rounded-md shadow-lg" onerror="this.style.display='none'">
+                                      <span>${countryName}</span>
                                    </h2>
-                                    <div class="mb-4 border-b border-gray-700 pb-4">
-                                        <div class="flex items-start gap-3">
+                                    <div class="mb-4 border-b border-gray-700/60 pb-4">
+                                        <div class="flex items-start gap-4">
                                             <div class="flex-shrink-0">
-                                                <span class="font-bold text-xs py-1 px-3 rounded-full text-white ${statusColor}">${insight.status}</span>
+                                                <span class="font-bold text-xs py-1 px-3 rounded-full ${statusColor}">${insight.status}</span>
                                             </div>
                                             <div>
                                                 <h3 class="font-semibold text-base text-gray-200">Student Outlook</h3>
@@ -222,13 +263,13 @@
                                             </div>
                                         </div>
                                     </div>
-                                   <div class="flex flex-wrap gap-2 mb-4">
+                                   <div class="flex flex-wrap gap-2 mb-4 p-1 bg-gray-900/50 rounded-lg tab-buttons-container">
                                        <button class="tab-button active" data-target="#news-${panelId}">News</button>
                                        <button class="tab-button" data-target="#info-${panelId}">Cost & Visa</button>
                                        <button class="tab-button" data-target="#scholarships-${panelId}">Scholarships</button>
                                        <button class="tab-button" data-target="#reviews-${panelId}">Reviews</button>
                                    </div>
-                                   <div class="flex-grow overflow-y-auto" style="min-height: 300px;">
+                                   <div class="flex-grow overflow-y-auto" style="min-height: 350px;">
                                        <div id="news-${panelId}" class="tab-content active"><div class="loader mx-auto mt-8"></div></div>
                                        <div id="info-${panelId}" class="tab-content"><div class="loader mx-auto mt-8"></div></div>
                                        <div id="scholarships-${panelId}" class="tab-content"></div>
@@ -261,7 +302,7 @@
                 }
             
                 if (!newsItems || newsItems.length === 0) {
-                    container.innerHTML = `<p class="text-gray-400 p-4">Could not find any recent news for ${countryName}.</p>`;
+                    container.innerHTML = `<p class="text-gray-400 p-4 text-center">Could not find any recent news for ${countryName}.</p>`;
                     return;
                 }
             
@@ -269,7 +310,7 @@
                 newsItemsContainer.className = 'space-y-4';
             
                 const loadMoreButton = document.createElement('button');
-                loadMoreButton.className = 'block text-center w-full bg-gray-700 hover:bg-gray-600 text-sky-300 font-bold py-3 px-4 rounded-md transition-colors mt-4';
+                loadMoreButton.className = 'block text-center w-full bg-gray-700/50 hover:bg-gray-700 text-blue-400 font-bold py-3 px-4 rounded-md transition-colors mt-4';
                 loadMoreButton.textContent = 'View More News →';
             
                 let displayedCount = 0;
@@ -284,12 +325,12 @@
                         const vitalBadge = isVital ? `<span class="absolute top-3 right-3 text-xs bg-red-600 text-white font-semibold px-2 py-1 rounded-full animate-pulse">VITAL</span>` : '';
                         
                         return `
-                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-gray-900/50 hover:bg-gray-700 transition-colors border border-gray-700 hover:border-sky-500">
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-gray-900/30 hover:bg-gray-900/60 transition-colors border border-gray-700/60 hover:border-blue-500/70">
                             ${vitalBadge}
                             <p class="font-semibold text-white flex-grow">${item.title}</p>
-                            <div class="mt-3 pt-3 border-t border-gray-600 flex justify-between items-center">
+                            <div class="mt-3 pt-3 border-t border-gray-700/60 flex justify-between items-center">
                                 <span class="text-xs text-gray-500">Source: ${item.source}</span>
-                                <span class="text-sm text-sky-400 font-semibold">Read More &rarr;</span>
+                                <span class="text-sm text-blue-400 font-semibold">Read More &rarr;</span>
                             </div>
                         </a>`;
                     }).join('');
@@ -319,12 +360,12 @@
                 const newsItems = await fetchLiveNews(query);
                 if (!vitalNewsContainer) return;
 
-                if (!newsItems || newsItems.length === 0) { vitalNewsContainer.innerHTML = `<p class="text-gray-400 p-4 md:col-span-3">No major global alerts found at this time.</p>`; return; }
+                if (!newsItems || newsItems.length === 0) { vitalNewsContainer.innerHTML = `<p class="text-gray-400 p-4 md:col-span-3 text-center">No major global alerts found at this time.</p>`; return; }
                 vitalNewsContainer.innerHTML = newsItems.slice(0, 3).map(item => `
-                    <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-sky-900/50 hover:bg-sky-800 transition-colors border border-sky-700 hover:border-sky-500">
+                    <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="relative flex flex-col h-full block p-4 rounded-lg bg-sky-900/30 hover:bg-sky-900/50 transition-all duration-300 border border-sky-700/60 hover:border-sky-500 dashboard-panel">
                         <span class="absolute top-3 right-3 text-xs bg-red-600 text-white font-semibold px-2 py-1 rounded-full animate-pulse">VITAL</span>
-                        <p class="font-semibold text-sky-100 flex-grow">${item.title}</p>
-                        <div class="mt-3 pt-3 border-t border-sky-800 flex justify-between items-center">
+                        <p class="font-semibold text-sky-100 flex-grow text-base">${item.title}</p>
+                        <div class="mt-3 pt-3 border-t border-sky-800/60 flex justify-between items-center">
                             <span class="text-xs text-sky-300">Source: ${item.source}</span>
                             <span class="text-sm text-sky-300 font-semibold">Read More &rarr;</span>
                         </div>
@@ -345,14 +386,14 @@
             };
             
             const renderCostAndVisa = async (container, countryName) => {
-                if (!allCostData) { // Add a check here
-                    container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">Cost of living data is unavailable.</div>`;
+                if (!allCostData) {
+                    container.innerHTML = `<div class="p-4 rounded-lg bg-gray-900/30 border border-gray-700/60 text-gray-400">Cost of living data is unavailable.</div>`;
                     return;
                 }
                 const costData = allCostData.find(row => row.Country?.toLowerCase() === countryName.toLowerCase());
                 const insightData = countryInsights[countryName.toLowerCase()] || { visaType: 'N/A', psw: 'N/A', officialLink: '#' };
 
-                let costHtml = `<div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400">No cost of living data found for ${countryName}.</div>`;
+                let costHtml = `<div class="p-4 rounded-lg bg-gray-900/30 border border-gray-700/60 text-gray-400">No cost of living data found for ${countryName}.</div>`;
                 if (costData) {
                     const costIndex = costData['Cost of Living Index'];
                     const estimatedCostUSD = (costIndex / 100) * BASELINE_COST_NYC_USD;
@@ -360,32 +401,32 @@
                     const formattedCost = convertedCost ? new Intl.NumberFormat(undefined, { style: 'currency', currency: selectedCurrency, minimumFractionDigits: 0 }).format(convertedCost) : 'Calculating...';
                     
                     costHtml = `
-                        <div class="pb-4 border-b border-gray-700">
-                           <h4 class="font-semibold text-gray-200 mb-2 text-base">Estimated Monthly Cost</h4>
-                           <p class="text-3xl font-bold text-sky-400">${formattedCost} <span class="text-lg font-medium text-gray-400">/ month</span></p>
+                        <div class="pb-4 border-b border-gray-700/60">
+                           <h4 class="font-semibold text-gray-200 mb-2 text-lg">Estimated Monthly Cost</h4>
+                           <p class="text-4xl font-bold text-sky-400">${formattedCost} <span class="text-xl font-medium text-gray-400">/ month</span></p>
                            <p class="text-xs text-gray-500 mt-1">(Excluding rent, based on Numbeo data relative to NYC)</p>
                         </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-200 my-2 text-base">Cost Indices (Source: Numbeo)</h4>
-                            <ul class="space-y-1 text-gray-300 list-disc list-inside">
-                                <li><strong>Cost of Living Index:</strong> ${costData['Cost of Living Index'] || 'N/A'}</li>
-                                <li><strong>Rent Index:</strong> ${costData['Rent Index'] || 'N/A'}</li>
-                                <li><strong>Purchasing Power Index:</strong> ${costData['Local Purchasing Power Index'] || 'N/A'}</li>
+                        <div class="pt-4">
+                            <h4 class="font-semibold text-gray-200 mb-2 text-lg">Cost Indices</h4>
+                            <ul class="space-y-2 text-gray-300">
+                                <li class="flex justify-between"><span>Cost of Living Index:</span> <span class="font-semibold text-white">${costData['Cost of Living Index'] || 'N/A'}</span></li>
+                                <li class="flex justify-between"><span>Rent Index:</span> <span class="font-semibold text-white">${costData['Rent Index'] || 'N/A'}</span></li>
+                                <li class="flex justify-between"><span>Purchasing Power Index:</span> <span class="font-semibold text-white">${costData['Local Purchasing Power Index'] || 'N/A'}</span></li>
                             </ul>
-                             <a href="https://www.numbeo.com/cost-of-living/country_result.jsp?country=${encodeURIComponent(countryName)}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline mt-2 inline-block font-semibold">View Detailed Data on Numbeo &rarr;</a>
+                             <a href="https://www.numbeo.com/cost-of-living/country_result.jsp?country=${encodeURIComponent(countryName)}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline mt-4 inline-block font-semibold">View Detailed Data on Numbeo &rarr;</a>
                         </div>`;
                 }
 
                 container.innerHTML = `
-                    <div class="space-y-4 text-sm p-4 rounded-lg bg-gray-900/50 border border-gray-700">
+                    <div class="space-y-4 text-sm p-4 rounded-lg bg-gray-900/30 border border-gray-700/60">
                         ${costHtml}
-                        <div class="border-t border-gray-700 pt-4">
-                            <h4 class="font-semibold text-gray-200 mb-2 text-base">Visa Snapshot</h4>
-                            <ul class="space-y-1 text-gray-300 list-disc list-inside">
-                                <li><strong>Primary Visa:</strong> ${insightData.visaType}</li>
-                                <li><strong>Post-Study Work:</strong> ${insightData.psw}</li>
+                        <div class="border-t border-gray-700/60 pt-4 mt-4">
+                            <h4 class="font-semibold text-gray-200 mb-2 text-lg">Visa Snapshot</h4>
+                            <ul class="space-y-2 text-gray-300">
+                                <li class="flex justify-between"><span>Primary Visa:</span> <span class="font-semibold text-white">${insightData.visaType}</span></li>
+                                <li class="flex justify-between"><span>Post-Study Work:</span> <span class="font-semibold text-white">${insightData.psw}</span></li>
                             </ul>
-                            <a href="${insightData.officialLink}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline mt-2 inline-block font-semibold">Official Immigration Site &rarr;</a>
+                            <a href="${insightData.officialLink}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline mt-4 inline-block font-semibold">Official Immigration Site &rarr;</a>
                         </div>
                     </div>`;
             };
@@ -398,12 +439,12 @@
                 const bachelorsUrl = `https://www.google.com/search?q=${encodeURIComponent(bachelorsQuery)}`;
                 
                 container.innerHTML = `
-                    <div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-300 space-y-4">
-                        <p>Use these direct links to find scholarships for <strong>${countryName}</strong> on <strong>scholars4dev.com</strong>, powered by a live Google search.</p>
-                        <a href="${mastersUrl}" target="_blank" rel="noopener noreferrer" class="block text-center w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-md transition-colors">
+                    <div class="p-4 rounded-lg bg-gray-900/30 border border-gray-700/60 text-gray-300 space-y-4">
+                        <p class="text-center">Find scholarships for <strong>${countryName}</strong> via a targeted Google search on <strong>scholars4dev.com</strong>.</p>
+                        <a href="${mastersUrl}" target="_blank" rel="noopener noreferrer" class="block text-center w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors search-button">
                             Find Masters Scholarships &rarr;
                         </a>
-                        <a href="${bachelorsUrl}" target="_blank" rel="noopener noreferrer" class="block text-center w-full bg-sky-800 hover:bg-sky-900 text-white font-bold py-3 px-4 rounded-md transition-colors">
+                        <a href="${bachelorsUrl}" target="_blank" rel="noopener noreferrer" class="block text-center w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-md transition-colors">
                             Find Bachelors Scholarships &rarr;
                         </a>
                     </div>
@@ -430,7 +471,7 @@
                 if (JSONBIN_API_KEY.includes('PASTE_YOUR_MASTER')) return false;
                 try {
                     const currentData = await fetchReviews();
-                    const updatedReviews = [newReview, ...currentData.reviews]; 
+                    const updatedReviews = [newReview, ...(currentData.reviews || [])]; 
                     const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
                         method: 'PUT',
                         headers: {
@@ -449,13 +490,13 @@
 
             const renderReviews = async (container, countryName) => {
                 let formHtml = `
-                    <div class="p-4 rounded-lg bg-gray-900/50 border border-gray-700">
-                        <h4 class="font-bold text-lg text-white mb-3">Share Your Experience</h4>
+                    <div class="p-4 rounded-lg bg-gray-900/30 border border-gray-700/60">
+                        <h4 class="font-bold text-lg text-white mb-3">Share Your Experience in ${countryName}</h4>
                         <form class="space-y-4" id="review-form-${countryName.replace(/\s+/g, '-')}">
                             <input type="hidden" name="country" value="${countryName}">
                             <div>
-                                <label class="text-sm font-medium text-gray-300">Your Name</label>
-                                <input type="text" name="name" required class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="e.g., Anjali S.">
+                                <label class="text-sm font-medium text-gray-300" for="name-${countryName}">Your Name</label>
+                                <input type="text" id="name-${countryName}" name="name" required class="mt-1 w-full bg-gray-700/80 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Anjali S.">
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-300">Overall Rating</label>
@@ -468,10 +509,10 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="text-sm font-medium text-gray-300">Your Review</label>
-                                <textarea name="comment" required rows="4" class="mt-1 w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="Share your pros, cons, and tips for future students..."></textarea>
+                                <label class="text-sm font-medium text-gray-300" for="comment-${countryName}">Your Review</label>
+                                <textarea id="comment-${countryName}" name="comment" required rows="4" class="mt-1 w-full bg-gray-700/80 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Share your pros, cons, and tips for future students..."></textarea>
                             </div>
-                            <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md transition-colors">Submit Review</button>
+                            <button type="submit" class="w-full search-button text-white font-bold py-2 px-4 rounded-md">Submit Review</button>
                             <div class="submit-message text-center text-sm pt-2"></div>
                         </form>
                     </div>`;
@@ -479,18 +520,18 @@
                 const allReviewsData = await fetchReviews();
                 const countryReviews = allReviewsData.reviews ? allReviewsData.reviews.filter(r => r.country === countryName) : [];
 
-                let reviewsHtml = `<p class="text-gray-400 text-center py-6">Be the first to leave a review for ${countryName}!</p>`;
+                let reviewsHtml = `<div class="text-center py-6 text-gray-400">Be the first to leave a review for ${countryName}!</div>`;
                 if (countryReviews.length > 0) {
                     reviewsHtml = countryReviews.map(review => {
                         const stars = '&#9733;'.repeat(review.rating) + '&#9734;'.repeat(5 - review.rating);
                         return `
-                        <div class="p-4 rounded-lg bg-gray-800 border border-gray-700">
+                        <div class="p-4 rounded-lg bg-gray-800/50 border border-gray-700/60">
                             <div class="flex justify-between items-start">
                                 <div>
                                     <p class="font-bold text-white">${review.name}</p>
                                     <p class="text-xs text-gray-400">${new Date(review.timestamp).toLocaleDateString()}</p>
                                 </div>
-                                <span class="text-lg text-amber-400">${stars}</span>
+                                <span class="text-xl text-amber-400" title="${review.rating} out of 5 stars">${stars}</span>
                             </div>
                             <p class="text-gray-300 mt-3 whitespace-pre-wrap">${review.comment}</p>
                         </div>`;
@@ -538,7 +579,7 @@
                  const timestampEl = document.getElementById('last-updated-timestamp');
                  if(timestampEl) {
                     const now = new Date();
-                    timestampEl.textContent = `Last updated: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    timestampEl.textContent = `Live data as of: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                  }
             };
 
@@ -577,7 +618,7 @@
                     resultsContainer.parentElement.insertBefore(errorToast, resultsContainer);
                 }
                  
-                ['Canada', 'Germany', 'United Kingdom', 'Australia', 'United States', 'Ireland', 'Netherlands', 'New Zealand'].forEach(country => renderCountryCard(country));
+                ['Canada', 'Germany', 'United Kingdom', 'Australia', 'United States'].forEach(country => renderCountryCard(country));
                 
                 updateTimestamp();
                 setInterval(refreshAllNews, 600000); 
